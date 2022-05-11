@@ -21,10 +21,10 @@ sed -i "s/OpenWrt /Actions build $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" pack
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
 #git lua-maxminddb 依赖
-git clone https://github.com/jerrykuku/lua-maxminddb.git openwrt/package/lean
+git clone https://github.com/jerrykuku/lua-maxminddb.git openwrt/package/lean/lua-maxminddb
 
 #luci-app-vssr
-git clone https://github.com/jerrykuku/luci-app-vssr.git openwrt/package/lean
+git clone https://github.com/jerrykuku/luci-app-vssr.git openwrt/package/lean/luci-app-vssr
 
 # Add kernel build user
 [ -z $(grep "CONFIG_KERNEL_BUILD_USER=" .config) ] &&
