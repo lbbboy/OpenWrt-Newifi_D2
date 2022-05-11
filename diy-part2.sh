@@ -9,7 +9,7 @@
 #============================================================
 
 # Modify default IP
-sed -i 's/192.168.1.1/10.0.0.1/g' package/base-files/files/bin/config_generate
+#sed -i 's/192.168.1.1/10.0.0.1/g' package/base-files/files/bin/config_generate
 
 # Modify hostname
 sed -i 's/OpenWrt/Newifi-D2/g' package/base-files/files/bin/config_generate
@@ -21,10 +21,10 @@ sed -i "s/OpenWrt /Actions build $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" pack
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
 #git lua-maxminddb 依赖
-cd package/lean && git clone https://github.com/jerrykuku/lua-maxminddb.git
+cd openwrt/package/lean && git clone https://github.com/jerrykuku/lua-maxminddb.git
 
 #luci-app-vssr
-cd package/lean && git clone https://github.com/jerrykuku/luci-app-vssr.git
+cd openwrt/package/lean && git clone https://github.com/jerrykuku/luci-app-vssr.git
 
 # Add kernel build user
 [ -z $(grep "CONFIG_KERNEL_BUILD_USER=" .config) ] &&
