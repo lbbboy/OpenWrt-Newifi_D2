@@ -12,7 +12,7 @@
 #sed -i 's/192.168.1.1/10.0.0.1/g' package/base-files/files/bin/config_generate
 
 # Modify hostname
-sed -i 's/OpenWrt/Newifi-D2/g' package/base-files/files/bin/config_generate
+# sed -i 's/OpenWrt/Newifi-D2/g' package/base-files/files/bin/config_generate
 
 # Modify the version number
 sed -i "s/OpenWrt /Actions build $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" package/lean/default-settings/files/zzz-default-settings
@@ -20,11 +20,8 @@ sed -i "s/OpenWrt /Actions build $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" pack
 # Modify default theme
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
-#git lua-maxminddb 依赖
-git clone https://github.com/jerrykuku/lua-maxminddb.git openwrt/package/lean/lua-maxminddb
-
-#luci-app-vssr
-git clone https://github.com/jerrykuku/luci-app-vssr.git openwrt/package/lean/luci-app-vssr
+# smpackage
+sed -i '$a src-git smpackage https://github.com/kenzok8/small-package' feeds.conf.default
 
 # Add kernel build user
 [ -z $(grep "CONFIG_KERNEL_BUILD_USER=" .config) ] &&
