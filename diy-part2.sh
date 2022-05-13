@@ -20,12 +20,6 @@ sed -i "s/OpenWrt /Actions build $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" pack
 # Modify default theme
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
-# lua-maxminddb
-git clone https://github.com/jerrykuku/lua-maxminddb.git package/lean/lua-maxminddb
-
-# luci-app-vssr
-git clone https://github.com/jerrykuku/luci-app-vssr.git package/lean/luci-app-vssr
-
 # Add kernel build user
 [ -z $(grep "CONFIG_KERNEL_BUILD_USER=" .config) ] &&
     echo 'CONFIG_KERNEL_BUILD_USER="Actions"' >>.config ||
