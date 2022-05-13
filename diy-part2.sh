@@ -20,12 +20,6 @@ sed -i "s/OpenWrt /Actions build $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" pack
 # Modify default theme
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
-# helloworld
-echo 'src-git helloworld https://github.com/fw876/helloworld' >>feeds.conf.default
-
-# passwall
-echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >>feeds.conf.default
-
 # lua-maxminddb
 git clone https://github.com/jerrykuku/lua-maxminddb.git package/lean/lua-maxminddb
 
