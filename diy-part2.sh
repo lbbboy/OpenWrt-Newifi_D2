@@ -18,7 +18,13 @@
 sed -i "s/OpenWrt /Actions build $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" package/lean/default-settings/files/zzz-default-settings
 
 # Modify default theme
-sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
+sed -i 's/luci-theme-bootstrap/luci-theme-material/g' feeds/luci/collections/luci/Makefile
+
+# wifi
+sed -i 's/US/CN/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
+
+# wifi name
+sed -i 's/OpenWrt/Newifi D2/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
 
 # Add kernel build user
 [ -z $(grep "CONFIG_KERNEL_BUILD_USER=" .config) ] &&
