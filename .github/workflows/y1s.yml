@@ -24,8 +24,8 @@ on:
         default: 'false'
   schedule:
     - cron: 0 8 1 * *
-  watch:
-    types: [started]
+# watch:
+#   types: [started]
 
 jobs:
   build:
