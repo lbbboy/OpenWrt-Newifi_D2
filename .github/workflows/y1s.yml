@@ -1,4 +1,4 @@
-name: Build OpenWrt
+name: Y1S
 
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
