@@ -9,7 +9,7 @@
 #============================================================
 
 # Modify default IP
-#sed -i 's/192.168.1.1/10.0.0.1/g' package/base-files/files/bin/config_generate
+sed -i 's/192.168.1.1/192.168.123.1/g' package/base-files/files/bin/config_generate
 
 # Modify hostname
 # sed -i 's/OpenWrt/Newifi-D2/g' package/base-files/files/bin/config_generate
@@ -24,7 +24,7 @@ sed -i 's/luci-theme-bootstrap/luci-theme-material/g' feeds/luci/collections/luc
 sed -i 's/US/CN/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
 
 # wifi name
-# sed -i 's/OpenWrt/Newifi D2/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
+sed -i 's/OpenWrt/Newifi D2/g' package/kernel/mac80211/files/lib/wifi/mac80211.sh
 
 # Add kernel build user
 [ -z $(grep "CONFIG_KERNEL_BUILD_USER=" .config) ] &&
