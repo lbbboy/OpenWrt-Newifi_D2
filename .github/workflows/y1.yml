@@ -1,4 +1,4 @@
-name: Y1 Openwrt
+name: Y1
 
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
