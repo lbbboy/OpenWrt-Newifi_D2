@@ -1,7 +1,6 @@
 name: Auto-Clean
 
 on:
-  #手动清理
   workflow_dispatch:
 
 permissions: write-all
@@ -15,6 +14,7 @@ jobs:
         with:
           gh_token: ${{secrets.GITHUB_TOKEN}}
           delete_releases: true
+          releases_keep_latest: 0
           delete_tags: true
           delete_workflows: true
           workflows_keep_day: 0
