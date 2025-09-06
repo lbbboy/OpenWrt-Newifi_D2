@@ -3,7 +3,7 @@ name: jdc_ax1800_pro
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
   REPO_BRANCH: master
-  FEEDS_CONF: ax1800feeds.conf.default
+  FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: jdcloud_re-ss-01.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
@@ -13,6 +13,8 @@ env:
   UPLOAD_WETRANSFER: true
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
+  TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
 on:
   repository_dispatch:
@@ -180,3 +182,17 @@ jobs:
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Telegram notification
+      if: always()
+      continue-on-error: true
+      run: |
+        if [ "${{ job.status }}" = "success" ]; then
+          curl -s -k --data chat_id="${{ env.TELEGRAM_CHAT_ID }}" \
+               --data "text=🎉 OpenWrt ${{ env.VERSION }} ${{ env.WRT_TARGET }} 编译成功 😋 🔗 https://github.com/${{ github.repository }}/releases/latest/" \
+               "https://api.telegram.org/bot${{ env.TELEGRAM_TOKEN }}/sendMessage"
+        else
+          curl -s -k --data chat_id="${{ env.TELEGRAM_CHAT_ID }}" \
+               --data "text=❌ OpenWrt ${{ env.VERSION }} ${{ env.WRT_TARGET }} 编译失败 😂 🔗 https://github.com/${{ github.repository }}/releases/latest/" \
+               "https://api.telegram.org/bot${{ env.TELEGRAM_TOKEN }}/sendMessage"
+        fi
