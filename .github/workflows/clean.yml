@@ -15,5 +15,6 @@ jobs:
         with:
           gh_token: ${{secrets.GITHUB_TOKEN}}
           delete_releases: true
+          delete_tags: true
           delete_workflows: true
           workflows_keep_day: 0
