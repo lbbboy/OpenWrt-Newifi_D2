@@ -3,7 +3,7 @@ name: jdc_ax1800_pro_VIKINGYFY
 env:
   REPO_URL: https://github.com/VIKINGYFY/immortalwrt
   REPO_BRANCH: main
-  FEEDS_CONF: feeds.conf.default
+  FEEDS_CONF: 24.10
   CONFIG_FILE: jdc_ax1800_pro.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
@@ -76,7 +76,6 @@ jobs:
         [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
         chmod +x $DIY_P1_SH
         cd openwrt
-        cp $GITHUB_WORKSPACE/24.10 feeds.conf.default
         $GITHUB_WORKSPACE/$DIY_P1_SH
 
     - name: Update feeds
