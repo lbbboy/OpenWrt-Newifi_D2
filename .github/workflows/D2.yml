@@ -7,6 +7,7 @@ env:
   CONFIG_FILE: d2.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part3.sh
+  WRT_IP: 192.168.123.1
   UPLOAD_BIN_DIR: true
   UPLOAD_FIRMWARE: true
   UPLOAD_COWTRANSFER: false
