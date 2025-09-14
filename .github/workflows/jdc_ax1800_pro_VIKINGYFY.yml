@@ -114,7 +114,7 @@ jobs:
         set -e
         cd openwrt
         make defconfig
-        make download -j8
+        make download -j1
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
