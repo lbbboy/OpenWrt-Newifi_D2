@@ -7,6 +7,7 @@ env:
   CONFIG_FILE: jdc_ax1800_pro.config
   DIY_P1_SH: diy-part1.sh
   DIY_P2_SH: diy-part2.sh
+  FIX_SH: fix.sh
   UPLOAD_BIN_DIR: true
   UPLOAD_FIRMWARE: true
   UPLOAD_COWTRANSFER: false
@@ -78,6 +79,12 @@ jobs:
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
 
+    - name: fix
+      run: |
+        chmod +x $FIX_SH
+        cd openwrt
+        $GITHUB_WORKSPACE/$FIX_SH
+
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
 
@@ -114,11 +121,9 @@ jobs:
         set -e
         cd openwrt
         make defconfig
-        if ! make download -j8; then
-          echo "并行下载失败，切换到单线程模式查看详细日志..."
-          make download -j1 V=s
-          exit 1
-        fi
+        make download -j8
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
 
     - name: Compile the firmware
       id: compile
