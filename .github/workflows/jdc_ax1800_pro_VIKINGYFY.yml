@@ -111,6 +111,7 @@ jobs:
     - name: Download package
       id: package
       run: |
+        set -e
         cd openwrt
         make defconfig
         make download -j8
