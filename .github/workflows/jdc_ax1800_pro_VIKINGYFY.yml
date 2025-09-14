@@ -114,9 +114,11 @@ jobs:
         set -e
         cd openwrt
         make defconfig
-        make download -j1
-        find dl -size -1024c -exec ls -l {} \;
-        find dl -size -1024c -exec rm -f {} \;
+        if ! make download -j8; then
+          echo "并行下载失败，切换到单线程模式查看详细日志..."
+          make download -j1 V=s
+          exit 1
+        fi
 
     - name: Compile the firmware
       id: compile
