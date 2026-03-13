@@ -43,9 +43,6 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -61,7 +58,10 @@ jobs:
       with:
         root-reserve-mb: 1024
         swap-size-mb: 1024
-
+        
+    - name: Checkout
+      uses: actions/checkout@v4
+      
     - name: Clone source code
       run: |
         df -hT $PWD
