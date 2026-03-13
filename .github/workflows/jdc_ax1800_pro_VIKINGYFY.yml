@@ -43,12 +43,6 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-    - name: Maximize build space
-      uses: easimon/maximize-build-space@master
-      with:
-        root-reserve-mb: 20240
-        swap-size-mb: 1024
-
     - name: Checkout
       uses: actions/checkout@v4
 
@@ -61,6 +55,12 @@ jobs:
         sudo -E apt-get -qqy autoremove --purge
         sudo -E apt-get -qqy clean
         sudo timedatectl set-timezone "$TZ"
+
+    - name: Maximize build space
+      uses: easimon/maximize-build-space@master
+      with:
+        root-reserve-mb: 1024
+        swap-size-mb: 1024
 
     - name: Clone source code
       run: |
