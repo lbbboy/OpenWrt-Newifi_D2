@@ -48,7 +48,7 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo -E apt-get -qqy update
-        sudo -E apt-get -qqy install $(curl -fsSL is.gd/depends_ubuntu_2204)
+        sudo -E apt-get -qqy install $(curl -fsSL is.gd/BKiQLE)
         sudo -E apt-get -qqy autoremove --purge
         sudo -E apt-get -qqy clean
         sudo timedatectl set-timezone "$TZ"
