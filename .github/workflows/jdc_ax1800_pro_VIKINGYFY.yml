@@ -1,8 +1,8 @@
 name: jdc_ax1800_pro_VIKINGYFY
 
 env:
-  REPO_URL: https://github.com/VIKINGYFY/immortalwrt
-  REPO_BRANCH: main
+  REPO_URL: https://github.com/immortalwrt/immortalwrt
+  REPO_BRANCH: master
   FEEDS_CONF: feed
   CONFIG_FILE: jdc_ax1800_pro.config
   DIY_P1_SH: diy-part1.sh
