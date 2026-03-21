@@ -15,10 +15,8 @@
 
 sed -i '$a src-git passwall2 https://github.com/Openwrt-Passwall/openwrt-passwall2' feeds.conf.default
 
-sed -i '$a  src-git daed https://github.com/QiuSimons/luci-app-daed' feeds.conf.default
-
 # lua-maxminddb
-# git clone https://github.com/jerrykuku/lua-maxminddb.git package/lean/lua-maxminddb
+git clone https://github.com/QiuSimons/luci-app-daed package/dae
 
 # luci-app-vssr
 # git clone https://github.com/jerrykuku/luci-app-vssr.git package/lean/luci-app-vssr
