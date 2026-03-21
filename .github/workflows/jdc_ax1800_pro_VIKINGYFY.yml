@@ -71,27 +71,24 @@ jobs:
 
     - name: Fix clang for BPF
       run: |
-        # 1. 强制安装最新版本的 LLVM 和 Clang
+        # 1. 确保安装了编译器和连接器
         sudo apt-get update
         sudo apt-get install -y clang llvm lld
-
-        # 2. 获取当前系统 Clang 的主版本号 (例如 14 或 15)
-        CLANG_VERSION=$(clang --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d. -f1)
-        echo "Detected Clang version: $CLANG_VERSION"
-
-        # 3. 建立硬链接，确保脚本能通过多种名称找到编译器
-        sudo ln -sf /usr/bin/clang /usr/bin/clang-$CLANG_VERSION
-        sudo ln -sf /usr/bin/llc /usr/bin/llc-$CLANG_VERSION
         
-        # 4. 关键：将路径写入 GITHUB_ENV 并在当前 Shell 导出
+        # 2. 建立系统级软链接（解决 /invalid/clang 的根本办法）
+        # 很多脚本会寻找带版本号的 clang，这里统统指向系统默认
+        CLANG_VER=$(clang --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d. -f1)
+        sudo ln -sf /usr/bin/clang /usr/bin/clang-$CLANG_VER
+        sudo ln -sf /usr/bin/llc /usr/bin/llc-$CLANG_VER
+        
+        # 3. 注入全局环境变量，确保后续所有步骤都能读到
         echo "CLANG=/usr/bin/clang" >> $GITHUB_ENV
         echo "LLVM=1" >> $GITHUB_ENV
-        export CLANG=/usr/bin/clang
-        export LLVM=1
-
-        # 5. 验证是否安装成功
+        
+        # 验证一下
+        echo "Checking Clang version..."
         clang --version
-    
+
     - name: Clone source code
       working-directory: /workdir
       run: |
@@ -153,7 +150,7 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
-        make CLANG=/usr/bin/clang LLVM=1 -j$(nproc) || make -j1 || make -j1 V=s
+        make -j$(nproc) || make -j1 || make -j1 V=s
         echo "status=success" >> $GITHUB_ENV
         grep '^CONFIG_TARGET.*DEVICE.*=y' .config | sed -r 's/.*DEVICE_(.*)=y/\1/' > DEVICE_NAME
         [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
