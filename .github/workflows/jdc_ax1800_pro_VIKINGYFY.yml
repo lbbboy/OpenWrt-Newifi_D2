@@ -69,6 +69,13 @@ jobs:
         sudo mkdir -p /workdir
         sudo chown $USER:$GROUPS /workdir
 
+    - name: Fix clang for BPF
+      run: |
+        export CLANG=/usr/bin/clang
+        export LLVM=1
+        echo "CLANG=/usr/bin/clang" >> $GITHUB_ENV
+        echo "LLVM=1" >> $GITHUB_ENV
+    
     - name: Clone source code
       working-directory: /workdir
       run: |
