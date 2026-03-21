@@ -28,6 +28,16 @@ on:
         options:
           - false
           - true
+
+      ngrok:
+        description: 'Start SSH via ngrok'
+        required: true
+        default: 'false'
+        type: choice
+        options:
+          - false
+          - true
+
   schedule:
     - cron: 0 20 1 * *
 
@@ -93,6 +103,18 @@ jobs:
       env:
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+
+    - name: Start SSH via ngrok
+      uses: lbbboy/ssh2actions@main
+      with:
+        mode: ngrok
+      env:
+       NGROK_TOKEN: ${{ secrets.NGROK_TOKEN }}
+       NGROK_REGION: us
+       SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      if: ${{ github.event.inputs.ngrok == 'true' }}
 
     - name: Download package
       id: package
