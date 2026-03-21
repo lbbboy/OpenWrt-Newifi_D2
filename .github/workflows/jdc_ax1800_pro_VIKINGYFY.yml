@@ -71,22 +71,25 @@ jobs:
 
     - name: Fix clang for BPF
       run: |
-        # 1. 确保安装了编译器和连接器
+        # 1. 确保安装了 clang 和 llvm
         sudo apt-get update
         sudo apt-get install -y clang llvm lld
-        
-        # 2. 建立系统级软链接（解决 /invalid/clang 的根本办法）
-        # 很多脚本会寻找带版本号的 clang，这里统统指向系统默认
-        CLANG_VER=$(clang --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d. -f1)
-        sudo ln -sf /usr/bin/clang /usr/bin/clang-$CLANG_VER
-        sudo ln -sf /usr/bin/llc /usr/bin/llc-$CLANG_VER
-        
-        # 3. 注入全局环境变量，确保后续所有步骤都能读到
+
+        # 2. 找到系统当前 clang 的版本（通常是 14 或 15）
+        CLANG_VERSION=$(clang --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d. -f1)
+        echo "Detected Clang version: $CLANG_VERSION"
+
+        # 3. 建立软链接，防止脚本去找带版本号的 bin (如 clang-15)
+        sudo ln -sf /usr/bin/clang /usr/bin/clang-$CLANG_VERSION
+        sudo ln -sf /usr/bin/llc /usr/bin/llc-$CLANG_VERSION
+
+        # 4. 关键：修正 bpf.mk 可能寻找的 llvm-bpf 路径
+        # 许多 OpenWrt 脚本会硬编码寻找 /opt/llvm 或特定的 staging_dir
+        # 这里我们将系统 clang 路径写入 GITHUB_ENV 供后续 make 使用
         echo "CLANG=/usr/bin/clang" >> $GITHUB_ENV
         echo "LLVM=1" >> $GITHUB_ENV
         
-        # 验证一下
-        echo "Checking Clang version..."
+        # 5. 验证路径是否生效
         clang --version
 
     - name: Clone source code
