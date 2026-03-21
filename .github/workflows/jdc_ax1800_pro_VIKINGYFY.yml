@@ -1,19 +1,20 @@
-name: jdc_ax1800_pro_VIKINGYFY
+name: D2
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
   REPO_BRANCH: master
-  FEEDS_CONF: feed
-  CONFIG_FILE: jdc_ax1800_pro.config
+  FEEDS_CONF: feeds.conf.default
+  CONFIG_FILE: d2.config
   DIY_P1_SH: diy-part1.sh
-  DIY_P2_SH: diy-part2.sh
-  FIX_SH: fix.sh
+  DIY_P2_SH: diy-part3.sh
   UPLOAD_BIN_DIR: true
   UPLOAD_FIRMWARE: true
   UPLOAD_COWTRANSFER: false
   UPLOAD_WETRANSFER: true
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
+  TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+  TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
 on:
   repository_dispatch:
@@ -27,6 +28,7 @@ on:
         options:
           - false
           - true
+
       ngrok:
         description: 'Start SSH via ngrok'
         required: true
@@ -37,35 +39,42 @@ on:
           - true
 
   schedule:
-    - cron: 0 20 * * *
+    - cron: 0 20 1 * *
+
+permissions: write-all
+
+# watch:
+#   types: [started]
 
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
-        sudo -E apt-get -qqy update
-        sudo -E apt-get -qqy install $(curl -fsSL is.gd/BKiQLE)
-        sudo -E apt-get -qqy autoremove --purge
-        sudo -E apt-get -qqy clean
+        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+        sudo docker image prune --all --force
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install $(curl -fsSL https://raw.githubusercontent.com/lbbboy/OpenWrt-Newifi_D2/refs/heads/master/depends-ubuntu-2004)
+        sudo npm install -g pnpm
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
+        sudo mkdir -p /workdir
+        sudo chown $USER:$GROUPS /workdir
 
-    - name: Maximize build space
-      uses: easimon/maximize-build-space@master
-      with:
-        root-reserve-mb: 1024
-        swap-size-mb: 1024
-        
-    - name: Checkout
-      uses: actions/checkout@v4
-      
     - name: Clone source code
+      working-directory: /workdir
       run: |
         df -hT $PWD
-        git clone --depth=1 --single-branch --branch $REPO_BRANCH $REPO_URL openwrt
+        git clone $REPO_URL -b $REPO_BRANCH openwrt
+        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
     - name: Load custom feeds
       run: |
@@ -76,12 +85,6 @@ jobs:
 
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
-
-#    - name: fix
-#      run: |
-#        chmod +x $FIX_SH
-#        cd openwrt
-#        $GITHUB_WORKSPACE/$FIX_SH
 
     - name: Install feeds
       run: cd openwrt && ./scripts/feeds install -a
@@ -95,12 +98,12 @@ jobs:
         $GITHUB_WORKSPACE/$DIY_P2_SH
 
     - name: SSH connection to Actions
-      env:
-        TELEGRAM_BOT_TOKEN : ${{ secrets.TELEGRAM_TOKEN }}
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      uses: lbbboy/ssh2actions@main
+      uses: P3TERX/ssh2actions@v1.0.0
       if: ${{ github.event.inputs.ssh == 'true' }}
-      
+      env:
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+
     - name: Start SSH via ngrok
       uses: lbbboy/ssh2actions@main
       with:
@@ -116,7 +119,6 @@ jobs:
     - name: Download package
       id: package
       run: |
-        set -e
         cd openwrt
         make defconfig
         make download -j8
@@ -211,17 +213,17 @@ jobs:
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+        
     - name: Telegram notification
       if: always()
       continue-on-error: true
       run: |
         if [ "${{ job.status }}" = "success" ]; then
-          curl -s -k --data chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-               --data "text=🎉 OpenWrt ${{ env.DEVICE_NAME }} ${{ env.FILE_DATE }} 编译成功 😋 🔗 https://github.com/${{ github.repository }}/releases/latest/" \
-               "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage"
+          curl -s -k --data chat_id="${{ env.TELEGRAM_CHAT_ID }}" \
+               --data "text=🎉 OpenWrt ${{ env.VERSION }} ${{ env.WRT_TARGET }} 编译成功 😋 🔗 https://github.com/${{ github.repository }}/releases/latest/" \
+               "https://api.telegram.org/bot${{ env.TELEGRAM_TOKEN }}/sendMessage"
         else
-          curl -s -k --data chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
-               --data "text=❌ OpenWrt ${{ env.DEVICE_NAME }} ${{ env.FILE_DATE }} 编译失败 😂 🔗 https://github.com/${{ github.repository }}/releases/latest/" \
-               "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendMessage"
+          curl -s -k --data chat_id="${{ env.TELEGRAM_CHAT_ID }}" \
+               --data "text=❌ OpenWrt ${{ env.VERSION }} ${{ env.WRT_TARGET }} 编译失败 😂 🔗 https://github.com/${{ github.repository }}/releases/latest/" \
+               "https://api.telegram.org/bot${{ env.TELEGRAM_TOKEN }}/sendMessage"
         fi
