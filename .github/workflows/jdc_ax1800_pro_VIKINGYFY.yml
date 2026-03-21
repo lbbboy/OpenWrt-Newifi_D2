@@ -71,10 +71,26 @@ jobs:
 
     - name: Fix clang for BPF
       run: |
-        export CLANG=/usr/bin/clang
-        export LLVM=1
+        # 1. 强制安装最新版本的 LLVM 和 Clang
+        sudo apt-get update
+        sudo apt-get install -y clang llvm lld
+
+        # 2. 获取当前系统 Clang 的主版本号 (例如 14 或 15)
+        CLANG_VERSION=$(clang --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 | cut -d. -f1)
+        echo "Detected Clang version: $CLANG_VERSION"
+
+        # 3. 建立硬链接，确保脚本能通过多种名称找到编译器
+        sudo ln -sf /usr/bin/clang /usr/bin/clang-$CLANG_VERSION
+        sudo ln -sf /usr/bin/llc /usr/bin/llc-$CLANG_VERSION
+        
+        # 4. 关键：将路径写入 GITHUB_ENV 并在当前 Shell 导出
         echo "CLANG=/usr/bin/clang" >> $GITHUB_ENV
         echo "LLVM=1" >> $GITHUB_ENV
+        export CLANG=/usr/bin/clang
+        export LLVM=1
+
+        # 5. 验证是否安装成功
+        clang --version
     
     - name: Clone source code
       working-directory: /workdir
