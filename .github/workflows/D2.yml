@@ -1,8 +1,8 @@
 name: D2
 
 env:
-  REPO_URL: https://github.com/coolsnowwolf/lede
-  REPO_BRANCH: master
+  REPO_URL: https://github.com/VIKINGYFY/immortalwrt
+  REPO_BRANCH: owrt
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: d2.config
   DIY_P1_SH: diy-part1.sh
