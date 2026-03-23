@@ -38,7 +38,7 @@ on:
           - true
 
   schedule:
-    - cron: 0 20 1 * *
+    - cron: '0 22 * * *'
 
 permissions: write-all
 
