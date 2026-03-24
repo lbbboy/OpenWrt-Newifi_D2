@@ -96,6 +96,11 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
 
+    - name: Apply USB3 disable patch
+      run: |
+        cd openwrt
+        git apply $GITHUB_WORKSPACE/dts-disable-usb3.patch
+
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
       if: ${{ github.event.inputs.ssh == 'true' }}
