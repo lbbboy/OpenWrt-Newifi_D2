@@ -98,7 +98,7 @@ jobs:
 
     - name: Disable USB3 via DTS
       run: |
-        echo -e '\n&xhci { status = "disabled"; };\n&ehci { status = "okay"; };' >> openwrt/target/linux/ramips/dts/mt7621_d-team_newifi-d2.dts
+        echo -e '\n&xhci { status = "disabled"; };' >> openwrt/target/linux/ramips/dts/mt7621_d-team_newifi-d2.dts
 
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
