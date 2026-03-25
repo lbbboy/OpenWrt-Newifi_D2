@@ -96,10 +96,6 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
 
-    - name: Disable USB3 via DTS
-      run: |
-        echo -e '\n&xhci { status = "disabled"; };' >> openwrt/target/linux/ramips/dts/mt7621_d-team_newifi-d2.dts
-
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
       if: ${{ github.event.inputs.ssh == 'true' }}
