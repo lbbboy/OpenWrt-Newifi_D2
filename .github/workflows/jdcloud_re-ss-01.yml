@@ -37,7 +37,7 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo -E apt-get -qqy update
-        sudo -E apt-get -qqy install $(curl -fsSL https://shorturl.at/4Z53t)
+        sudo -E apt-get -qqy install $(curl -fsSL https://raw.githubusercontent.com/lbbboy/OpenWrt-Newifi_D2/refs/heads/master/depends-ubuntu-2004)
         sudo timedatectl set-timezone "$TZ"
 
     - name: Maximize build space
