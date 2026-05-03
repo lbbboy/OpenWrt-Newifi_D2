@@ -1,4 +1,4 @@
-name: jdcloud_re-ss-01
+name: jdc_ax1800_pro_LEDE
 
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede
