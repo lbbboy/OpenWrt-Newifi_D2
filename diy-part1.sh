@@ -13,7 +13,7 @@
 
 #sed -i '$a src-git helloworld https://github.com/fw876/helloworld' feeds.conf.default
 
-sed -i '$a src-git passwall2 https://github.com/Openwrt-Passwall/openwrt-passwall2' feeds.conf.default
+#sed -i '$a src-git passwall2 https://github.com/Openwrt-Passwall/openwrt-passwall2' feeds.conf.default
 
 # lua-daed
 #git clone https://github.com/QiuSimons/luci-app-daed package/dae
