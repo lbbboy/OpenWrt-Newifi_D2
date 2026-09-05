@@ -13,7 +13,7 @@ sed -i "s/luci-theme-bootstrap/luci-theme-material/g" $(find ./feeds/luci/collec
 
 CFG_FILE="./package/base-files/files/bin/config_generate"
 #修改默认IP地址
-sed -i "s/192\.168\.[0-9]\+\.[0-9]\+/192.168.123.1/g" "$CFG_FILE"
+sed -i "s/192\.168\.[0-9]\+\.[0-9]\+/192.168.12.1/g" "$CFG_FILE"
 
 # 隐藏顶部左侧的品牌文字
 cat >> package/feeds/luci/luci-theme-material/htdocs/luci-static/material/custom.css <<'EOF'
