@@ -2,7 +2,7 @@ name: D2
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
-  REPO_BRANCH: openwrt-25.12
+  REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: d2.config
   DIY_P1_SH: diy-part1.sh
