@@ -11,18 +11,18 @@
 #
 
 # Modify default IP
-sed -i 's/192.168.1.1/192.168.123.1/g' package/base-files/files/bin/config_generate
+#sed -i 's/192.168.1.1/192.168.123.1/g' package/base-files/files/bin/config_generate
 
 # Modify default theme
-sed -i 's/luci-theme-bootstrap/luci-theme-material/g' feeds/luci/collections/luci/Makefile
+#sed -i 's/luci-theme-bootstrap/luci-theme-material/g' feeds/luci/collections/luci/Makefile
 
 # Modify hostname
 #sed -i 's/OpenWrt/P3TERX-Router/g' package/base-files/files/bin/config_generate
 
 # 隐藏顶部左侧的品牌文字
-cat >> package/feeds/luci/luci-theme-material/htdocs/luci-static/material/custom.css <<'EOF'
+#cat >> package/feeds/luci/luci-theme-material/htdocs/luci-static/material/custom.css <<'EOF'
 
-a.brand {
-    display: none !important;
-}
-EOF
+#a.brand {
+#    display: none !important;
+#}
+#EOF
