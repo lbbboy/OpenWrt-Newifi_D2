@@ -92,6 +92,18 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
 
+    - name: Generate configuration
+      run: |
+        cd openwrt
+        make defconfig
+
+    - name: Cache OpenWrt build
+      uses: HiGarfield/cachewrtbuild@main
+      with:
+        ccache: true
+        mixkey: immortalwrt-master-newifi-d2
+        prefix: openwrt
+
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
       if: ${{ github.event.inputs.ssh == 'true' }}
@@ -115,8 +127,7 @@ jobs:
       id: package
       run: |
         cd openwrt
-        make defconfig
-        make download -j8
+        make download -j$(nproc)
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
