@@ -92,6 +92,30 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
 
+    - name: Patch daed for MIPS
+      run: |
+        cd openwrt
+        python3 - <<'PY'
+        from pathlib import Path
+
+        p = Path("feeds/packages/net/daed/Makefile")
+        s = p.read_text()
+
+        s = s.replace(
+            "GO_PKG_TAGS:=embedallowed,trace",
+            "GO_PKG_TAGS:=embedallowed"
+        )
+
+        s = s.replace(
+            "                go generate trace/trace.go ; \\",
+            "                # go generate trace/trace.go ; \\"
+        )
+
+        p.write_text(s)
+        PY
+
+        grep -nE 'GO_PKG_TAGS|go generate (control|trace)' feeds/packages/net/daed/Makefile
+
     - name: Generate configuration
       run: |
         cd openwrt
