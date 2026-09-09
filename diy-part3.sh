@@ -26,5 +26,13 @@ EOF
 # grpc
 #sed -i 's/^  GO_PKG_TAGS:=with_acme.*/  GO_PKG_TAGS:=with_acme,with_clash_api,with_dhcp,with_gvisor,with_quic,with_tailscale,with_utls,with_wireguard,with_grpc/g' feeds/packages/net/sing-box/Makefile
 
+# daed: MIPS BPF trace target
 sed -i 's/BPF_TRACE_TARGET="$(GO_ARCH)"/BPF_TRACE_TARGET="mips"/' \
+    feeds/packages/net/daed/Makefile
+
+# daed: MIPS/Linux 6.18 暂不编译 trace BPF
+sed -i 's/GO_PKG_TAGS:=embedallowed,trace/GO_PKG_TAGS:=embedallowed/' \
+    feeds/packages/net/daed/Makefile
+
+sed -i '/go generate trace\/trace.go/d' \
     feeds/packages/net/daed/Makefile
