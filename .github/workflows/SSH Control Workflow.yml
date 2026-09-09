@@ -32,26 +32,26 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: |
           sudo -E apt -yqq update
-          sudo -E apt-get -qqy install $(curl -fsSL https://raw.githubusercontent.com/lbbboy/OpenWRT-CI/refs/heads/main/dependencies)
+          sudo -E apt -yqq install $(cat "$GITHUB_WORKSPACE/dependencies")
           sudo -E systemctl daemon-reload
           sudo -E timedatectl set-timezone "Asia/Shanghai"
-          
-      - name: Maximize build space
-        uses: easimon/maximize-build-space@master
-        with:
-          root-reserve-mb: 4096
-          swap-size-mb: 1024
-          remove-dotnet: 'true'
+
+#      - name: Maximize build space
+#        uses: easimon/maximize-build-space@master
+#        with:
+#          root-reserve-mb: 4096
+#          swap-size-mb: 1024
+#          remove-dotnet: 'true'
 
       - name: Checkout
         uses: actions/checkout@main
 
       - name: SSH connection to Actions
+        uses: lbbboy/ssh2actions@main
+        if: ${{ github.event.inputs.ssh == 'true' }}
         env:
           TELEGRAM_BOT_TOKEN : ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        uses: lbbboy/ssh2actions@main
-        if: ${{ github.event.inputs.ssh == 'true' }}
 
       - name: Start SSH via ngrok
         uses: lbbboy/ssh2actions@main
