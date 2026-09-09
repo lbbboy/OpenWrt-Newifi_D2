@@ -76,5 +76,3 @@ s = s[:start] + new + s[end:]
 p.write_text(s)
 print("==> daed Makefile patched successfully")
 PY
-print("==> daed Build/Compile replaced successfully")
-PY
