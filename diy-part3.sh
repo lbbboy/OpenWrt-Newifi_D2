@@ -29,34 +29,41 @@ EOF
 # ============================================================
 # daed 1.27.0 - MIPS32 compatibility
 # ============================================================
- 
+
 DAED_MAKEFILE="./feeds/packages/net/daed/Makefile"
- 
+
 python3 - "$DAED_MAKEFILE" <<'PY'
 from pathlib import Path
 import sys
- 
+
 p = Path(sys.argv[1])
 s = p.read_text()
- 
+
 # ------------------------------------------------------------
-# 1. MIPS32 不编译 trace
+# 1. MIPS32 禁用 trace
 # ------------------------------------------------------------
- 
+
 s = s.replace(
     "GO_PKG_TAGS:=embedallowed,trace",
     "GO_PKG_TAGS:=embedallowed",
 )
- 
+
 # ------------------------------------------------------------
-# 2. 替换 Build/Compile
-#    动态解析 cilium/ebpf 版本号，而不是写死版本，
-#    避免依赖升级后补丁路径失效导致构建中断。
+# 2. 删除 trace BPF 生成
 # ------------------------------------------------------------
- 
+
+s = s.replace(
+    "\t\tgo generate trace/trace.go ; \\",
+    "",
+)
+
+# ------------------------------------------------------------
+# 3. 替换 Build/Compile
+# ------------------------------------------------------------
+
 start = s.index("define Build/Compile")
 end = s.index("endef", start) + len("endef")
- 
+
 new = r'''define Build/Compile
 	( \
 		pushd $(PKG_BUILD_DIR) ; \
@@ -67,25 +74,24 @@ new = r'''define Build/Compile
 		go generate ./... ; \
 		cd dae-core ; \
 		echo "========================================" ; \
-		echo "==> resolving cilium/ebpf version..." ; \
-		EBPF_VER="$$(go list -m -f '{{.Version}}' github.com/cilium/ebpf)" ; \
-		echo "==> resolved version: $$EBPF_VER" ; \
-		EBPF_DIR="$$(go env GOMODCACHE)/github.com/cilium/ebpf@$$EBPF_VER" ; \
-		EBPF_FILE="$$EBPF_DIR/btf/unmarshal.go" ; \
-		echo "==> target file: $$EBPF_FILE" ; \
-		test -f "$$EBPF_FILE" || { \
-			echo "==> ERROR: cilium/ebpf unmarshal.go not found at $$EBPF_FILE" ; \
-			echo "==> available cilium/ebpf dirs in module cache:" ; \
-			find "$$(go env GOMODCACHE)/github.com/cilium" -maxdepth 1 -type d 2>/dev/null ; \
+		echo "==> cilium/ebpf BTF file:" ; \
+		echo "/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" ; \
+		if [ ! -f "/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" ]; then \
+			echo "==> ERROR: cilium/ebpf btf/unmarshal.go not found" ; \
+			echo "==> cilium/ebpf cache directory:" ; \
+			ls -la "/workdir/openwrt/dl/go-mod-cache/github.com/cilium" 2>/dev/null || true ; \
 			exit 1 ; \
-		} ; \
-		chmod -R u+w "$$EBPF_DIR" ; \
+		fi ; \
 		echo "==> BEFORE PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' "$$EBPF_FILE" || true ; \
-		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' "$$EBPF_FILE" ; \
+		grep -n 'btfIndex.*math.MaxInt' \
+			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" || true ; \
+		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' \
+			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" ; \
 		echo "==> AFTER PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' "$$EBPF_FILE" ; \
-		if ! grep -q 'btfIndex != \^uint32(0)' "$$EBPF_FILE"; then \
+		grep -n 'btfIndex.*math.MaxInt' \
+			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" ; \
+		if ! grep -q 'btfIndex != \^uint32(0)' \
+			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go"; then \
 			echo "==> ERROR: cilium/ebpf BTF patch NOT applied" ; \
 			exit 1 ; \
 		fi ; \
@@ -95,15 +101,17 @@ new = r'''define Build/Compile
 		BPF_CLANG="$(CLANG)" \
 		BPF_STRIP_FLAG="-strip=$(LLVM_STRIP)" \
 		BPF_CFLAGS="$(DAE_CFLAGS)" \
-		BPF_TARGET="bpfel,bpfeb" ; \
+		BPF_TARGET="bpfel,bpfeb" \
+		BPF_TRACE_TARGET="mips" ; \
 		go generate control/control.go ; \
 		popd ; \
 		$(call GoPackage/Build/Compile) ; \
 	)
 endef'''
- 
+
 s = s[:start] + new + s[end:]
- 
+
 p.write_text(s)
+
 print("==> daed 1.27.0 Makefile patched successfully")
 PY
