@@ -67,11 +67,14 @@ new = r'''define Build/Compile
 		go generate ./... ; \
 		cd dae-core ; \
 		echo "========================================" ; \
-		echo "==> downloading full cilium/ebpf module source..." ; \
-		go mod download github.com/cilium/ebpf ; \
 		echo "==> resolving cilium/ebpf version..." ; \
 		EBPF_VER="$$$$(go list -m -f '{{.Version}}' github.com/cilium/ebpf)" ; \
 		echo "==> resolved version: $$$$EBPF_VER" ; \
+		EBPF_STALE_DIR="$$$$(go env GOMODCACHE)/github.com/cilium/ebpf@$$$${EBPF_VER}" ; \
+		echo "==> forcing clean re-download of cilium/ebpf@$$$${EBPF_VER} ..." ; \
+		chmod -R u+w "$$$${EBPF_STALE_DIR}" 2>/dev/null || true ; \
+		rm -rf "$$$${EBPF_STALE_DIR}" ; \
+		go mod download -x github.com/cilium/ebpf 2>&1 | tail -n 20 ; \
 		EBPF_DIR="$$$$(go env GOMODCACHE)/github.com/cilium/ebpf@$$$${EBPF_VER}" ; \
 		EBPF_FILE="$$$${EBPF_DIR}/btf/unmarshal.go" ; \
 		echo "==> target file: $$$${EBPF_FILE}" ; \
