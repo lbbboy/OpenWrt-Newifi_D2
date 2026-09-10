@@ -27,10 +27,10 @@ EOF
 #sed -i 's/^  GO_PKG_TAGS:=with_acme.*/  GO_PKG_TAGS:=with_acme,with_clash_api,with_dhcp,with_gvisor,with_quic,with_tailscale,with_utls,with_wireguard,with_grpc/g' feeds/packages/net/sing-box/Makefile
 
 # ============================================================
-# daed 1.27.0 - MIPS/32-bit compatibility
+# daed 1.27.0 - MIPS32 / MT7621 compatibility
 # ============================================================
 
-DAED_MAKEFILE="feeds/packages/net/daed/Makefile"
+DAED_MAKEFILE="./feeds/packages/net/daed/Makefile"
 
 python3 - "$DAED_MAKEFILE" <<'PY'
 from pathlib import Path
@@ -39,25 +39,19 @@ import sys
 p = Path(sys.argv[1])
 s = p.read_text()
 
-# 1. MIPS 不启用 trace
+# ------------------------------------------------------------
+# 1. MIPS32 不编译 trace
+#    原：
+#    GO_PKG_TAGS:=embedallowed,trace
+# ------------------------------------------------------------
 s = s.replace(
     "GO_PKG_TAGS:=embedallowed,trace",
     "GO_PKG_TAGS:=embedallowed",
 )
 
-# 2. 删除 MIPS 不兼容的 trace 生成
-s = s.replace(
-    "\t\tgo generate trace/trace.go ; \\",
-    "",
-)
-
-# 3. MIPS BPF trace target
-s = s.replace(
-    'BPF_TRACE_TARGET="$(GO_ARCH)"',
-    'BPF_TRACE_TARGET="mips"',
-)
-
-# 4. 给 Build/Compile 加入 cilium/ebpf BTF 补丁
+# ------------------------------------------------------------
+# 2. 替换整个 Build/Compile
+# ------------------------------------------------------------
 start = s.index("define Build/Compile")
 end = s.index("endef", start) + len("endef")
 
@@ -72,23 +66,27 @@ new = r'''define Build/Compile
 		cd dae-core ; \
 		EBPF_DIR="$$(go list -m -f '{{.Dir}}' github.com/cilium/ebpf)" ; \
 		echo "========================================" ; \
-		echo "==> cilium/ebpf directory:" ; \
-		echo "$$EBPF_DIR" ; \
+		echo "==> cilium/ebpf directory: $$EBPF_DIR" ; \
 		echo "==> BEFORE PATCH:" ; \
-		grep -n -A3 -B3 'btfIndex.*math.MaxInt' "$$EBPF_DIR/btf/unmarshal.go" || true ; \
-		echo "========================================" ; \
-		if grep -q 'if uint64(btfIndex) > math.MaxInt {' "$$EBPF_DIR/btf/unmarshal.go" ; then \
-			sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' \
-				"$$EBPF_DIR/btf/unmarshal.go" ; \
+		grep -n 'btfIndex.*math.MaxInt' "$$EBPF_DIR/btf/unmarshal.go" || true ; \
+		if [ -z "$$EBPF_DIR" ] || [ ! -f "$$EBPF_DIR/btf/unmarshal.go" ]; then \
+			echo "==> ERROR: cilium/ebpf btf/unmarshal.go not found" ; \
+			echo "==> GO env:" ; \
+			go env GOPATH GOMOD GOPROXY ; \
+			echo "==> cilium/ebpf module:" ; \
+			go list -m github.com/cilium/ebpf || true ; \
+			exit 1 ; \
 		fi ; \
+		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' \
+			"$$EBPF_DIR/btf/unmarshal.go" ; \
 		echo "==> AFTER PATCH:" ; \
-		grep -n -A3 -B3 'btfIndex.*math.MaxInt' "$$EBPF_DIR/btf/unmarshal.go" || true ; \
-		if grep -q 'if btfIndex != \^uint32(0) && uint64(btfIndex) > math.MaxInt {' "$$EBPF_DIR/btf/unmarshal.go" ; then \
-			echo "==> SUCCESS: cilium/ebpf BTF patch applied" ; \
-		else \
+		grep -n 'btfIndex.*math.MaxInt' "$$EBPF_DIR/btf/unmarshal.go" ; \
+		if ! grep -q 'btfIndex != \^uint32(0)' "$$EBPF_DIR/btf/unmarshal.go"; then \
 			echo "==> ERROR: cilium/ebpf BTF patch NOT applied" ; \
 			exit 1 ; \
 		fi ; \
+		echo "==> cilium/ebpf BTF patch applied successfully" ; \
+		echo "========================================" ; \
 		export \
 		BPF_CLANG="$(CLANG)" \
 		BPF_STRIP_FLAG="-strip=$(LLVM_STRIP)" \
@@ -104,10 +102,5 @@ endef'''
 s = s[:start] + new + s[end:]
 
 p.write_text(s)
-print("==> daed Makefile patched successfully")
+print("==> daed 1.27.0 Makefile patched successfully")
 PY
-
-echo "===== CHECK DAED MAKEFILE ====="
-grep -nE 'GO_PKG_TAGS|BPF_TRACE_TARGET|EBPF_DIR|btf/unmarshal' \
-    "$DAED_MAKEFILE" || true
-echo "================================"
