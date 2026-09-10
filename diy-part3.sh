@@ -27,7 +27,7 @@ EOF
 #sed -i 's/^  GO_PKG_TAGS:=with_acme.*/  GO_PKG_TAGS:=with_acme,with_clash_api,with_dhcp,with_gvisor,with_quic,with_tailscale,with_utls,with_wireguard,with_grpc/g' feeds/packages/net/sing-box/Makefile
 
 # ============================================================
-# daed 1.27.0 - MIPS32 / MT7621 compatibility
+# daed 1.27.0 - MIPS32 compatibility
 # ============================================================
 
 DAED_MAKEFILE="./feeds/packages/net/daed/Makefile"
@@ -40,18 +40,27 @@ p = Path(sys.argv[1])
 s = p.read_text()
 
 # ------------------------------------------------------------
-# 1. MIPS32 不编译 trace
-#    原：
-#    GO_PKG_TAGS:=embedallowed,trace
+# 1. MIPS32 禁用 trace
 # ------------------------------------------------------------
+
 s = s.replace(
     "GO_PKG_TAGS:=embedallowed,trace",
     "GO_PKG_TAGS:=embedallowed",
 )
 
 # ------------------------------------------------------------
-# 2. 替换整个 Build/Compile
+# 2. 删除 trace 生成
 # ------------------------------------------------------------
+
+s = s.replace(
+    "\t\tgo generate trace/trace.go ; \\",
+    "",
+)
+
+# ------------------------------------------------------------
+# 3. 替换 Build/Compile
+# ------------------------------------------------------------
+
 start = s.index("define Build/Compile")
 end = s.index("endef", start) + len("endef")
 
@@ -64,24 +73,34 @@ new = r'''define Build/Compile
 		$(GO_PKG_BUILD_VARS) ; \
 		go generate ./... ; \
 		cd dae-core ; \
-		EBPF_DIR="$$(go list -m -f '{{.Dir}}' github.com/cilium/ebpf)" ; \
 		echo "========================================" ; \
-		echo "==> cilium/ebpf directory: $$EBPF_DIR" ; \
-		echo "==> BEFORE PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' "$$EBPF_DIR/btf/unmarshal.go" || true ; \
-		if [ -z "$$EBPF_DIR" ] || [ ! -f "$$EBPF_DIR/btf/unmarshal.go" ]; then \
+		echo "==> locating github.com/cilium/ebpf..." ; \
+		EBPF_MOD="$$(go list -m -f '{{.Path}}@{{.Version}}' github.com/cilium/ebpf)" ; \
+		echo "==> module: $$EBPF_MOD" ; \
+		EBPF_DIR="$$(go env GOPATH)/pkg/mod/github.com/cilium/ebpf@v0.15.0" ; \
+		echo "==> directory: $$EBPF_DIR" ; \
+		echo "==> checking:" ; \
+		ls -ld "$$EBPF_DIR" || true ; \
+		ls -l "$$EBPF_DIR/btf/unmarshal.go" || true ; \
+		if [ ! -f "$$EBPF_DIR/btf/unmarshal.go" ]; then \
 			echo "==> ERROR: cilium/ebpf btf/unmarshal.go not found" ; \
-			echo "==> GO env:" ; \
-			go env GOPATH GOMOD GOPROXY ; \
-			echo "==> cilium/ebpf module:" ; \
-			go list -m github.com/cilium/ebpf || true ; \
+			echo "==> GOPATH: $$(go env GOPATH)" ; \
+			echo "==> GOMOD: $$(go env GOMOD)" ; \
+			echo "==> module cache:" ; \
+			find "$$(go env GOPATH)/pkg/mod/github.com/cilium" \
+				-maxdepth 2 -type f -name unmarshal.go 2>/dev/null || true ; \
 			exit 1 ; \
 		fi ; \
+		echo "==> BEFORE PATCH:" ; \
+		grep -n 'btfIndex.*math.MaxInt' \
+			"$$EBPF_DIR/btf/unmarshal.go" || true ; \
 		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' \
 			"$$EBPF_DIR/btf/unmarshal.go" ; \
 		echo "==> AFTER PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' "$$EBPF_DIR/btf/unmarshal.go" ; \
-		if ! grep -q 'btfIndex != \^uint32(0)' "$$EBPF_DIR/btf/unmarshal.go"; then \
+		grep -n 'btfIndex.*math.MaxInt' \
+			"$$EBPF_DIR/btf/unmarshal.go" ; \
+		if ! grep -q 'btfIndex != \^uint32(0)' \
+			"$$EBPF_DIR/btf/unmarshal.go"; then \
 			echo "==> ERROR: cilium/ebpf BTF patch NOT applied" ; \
 			exit 1 ; \
 		fi ; \
@@ -102,5 +121,6 @@ endef'''
 s = s[:start] + new + s[end:]
 
 p.write_text(s)
-print("==> daed 1.27.0 Makefile patched successfully")
+
+print("==> daed Makefile patched successfully")
 PY
