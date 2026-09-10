@@ -40,7 +40,7 @@ p = Path(sys.argv[1])
 s = p.read_text()
 
 # ------------------------------------------------------------
-# 1. MIPS32 禁用 trace
+# 1. MIPS32 不编译 trace
 # ------------------------------------------------------------
 
 s = s.replace(
@@ -49,7 +49,7 @@ s = s.replace(
 )
 
 # ------------------------------------------------------------
-# 2. 删除 trace 生成
+# 2. 删除 trace BPF 生成
 # ------------------------------------------------------------
 
 s = s.replace(
@@ -74,20 +74,27 @@ new = r'''define Build/Compile
 		go generate ./... ; \
 		cd dae-core ; \
 		echo "========================================" ; \
-		echo "==> searching cilium/ebpf..." ; \
-		find /workdir/openwrt -path '*/github.com/cilium/ebpf@*/btf/unmarshal.go' -print ; \
-		CILIUM_BTF="$$(find /workdir/openwrt -path '*/github.com/cilium/ebpf@*/btf/unmarshal.go' -print -quit)" ; \
-		echo "==> cilium/ebpf BTF file: $${CILIUM_BTF}" ; \
-		if [ -z "$${CILIUM_BTF}" ]; then \
-			echo "==> ERROR: cilium/ebpf btf/unmarshal.go not found" ; \
+		echo "==> Go module cache:" ; \
+		go env GOMODCACHE ; \
+		echo "==> Go module:" ; \
+		go list -m github.com/cilium/ebpf ; \
+		echo "==> cilium/ebpf BTF:" ; \
+		echo "$$(go env GOMODCACHE)/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" ; \
+		echo "==> checking file..." ; \
+		test -f "$$(go env GOMODCACHE)/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" || { \
+			echo "==> ERROR: cilium/ebpf unmarshal.go not found" ; \
 			exit 1 ; \
-		fi ; \
+		} ; \
 		echo "==> BEFORE PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' "$${CILIUM_BTF}" || true ; \
-		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' "$${CILIUM_BTF}" ; \
+		grep -n 'btfIndex.*math.MaxInt' \
+			"$$(go env GOMODCACHE)/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" || true ; \
+		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' \
+			"$$(go env GOMODCACHE)/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" ; \
 		echo "==> AFTER PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' "$${CILIUM_BTF}" ; \
-		if ! grep -q 'btfIndex != \^uint32(0)' "$${CILIUM_BTF}"; then \
+		grep -n 'btfIndex.*math.MaxInt' \
+			"$$(go env GOMODCACHE)/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" ; \
+		if ! grep -q 'btfIndex != \^uint32(0)' \
+			"$$(go env GOMODCACHE)/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go"; then \
 			echo "==> ERROR: cilium/ebpf BTF patch NOT applied" ; \
 			exit 1 ; \
 		fi ; \
