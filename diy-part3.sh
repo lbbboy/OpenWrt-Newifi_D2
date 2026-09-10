@@ -49,7 +49,7 @@ s = s.replace(
 )
 
 # ------------------------------------------------------------
-# 2. 删除 trace BPF 生成
+# 2. 删除 trace 生成
 # ------------------------------------------------------------
 
 s = s.replace(
@@ -77,17 +77,17 @@ new = r'''define Build/Compile
 		echo "==> searching cilium/ebpf..." ; \
 		find /workdir/openwrt -path '*/github.com/cilium/ebpf@*/btf/unmarshal.go' -print ; \
 		CILIUM_BTF="$$(find /workdir/openwrt -path '*/github.com/cilium/ebpf@*/btf/unmarshal.go' -print -quit)" ; \
-		echo "==> cilium/ebpf BTF file: $$CILIUM_BTF" ; \
-		if [ -z "$$CILIUM_BTF" ]; then \
+		echo "==> cilium/ebpf BTF file: $${CILIUM_BTF}" ; \
+		if [ -z "$${CILIUM_BTF}" ]; then \
 			echo "==> ERROR: cilium/ebpf btf/unmarshal.go not found" ; \
 			exit 1 ; \
 		fi ; \
 		echo "==> BEFORE PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' "$$CILIUM_BTF" || true ; \
-		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' "$$CILIUM_BTF" ; \
+		grep -n 'btfIndex.*math.MaxInt' "$${CILIUM_BTF}" || true ; \
+		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' "$${CILIUM_BTF}" ; \
 		echo "==> AFTER PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' "$$CILIUM_BTF" ; \
-		if ! grep -q 'btfIndex != \^uint32(0)' "$$CILIUM_BTF"; then \
+		grep -n 'btfIndex.*math.MaxInt' "$${CILIUM_BTF}" ; \
+		if ! grep -q 'btfIndex != \^uint32(0)' "$${CILIUM_BTF}"; then \
 			echo "==> ERROR: cilium/ebpf BTF patch NOT applied" ; \
 			exit 1 ; \
 		fi ; \
@@ -108,6 +108,5 @@ endef'''
 s = s[:start] + new + s[end:]
 
 p.write_text(s)
-
 print("==> daed 1.27.0 Makefile patched successfully")
 PY
