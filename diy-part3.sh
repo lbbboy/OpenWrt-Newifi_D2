@@ -49,7 +49,7 @@ s = s.replace(
 )
 
 # ------------------------------------------------------------
-# 2. 删除 trace 生成
+# 2. 删除 trace BPF 生成
 # ------------------------------------------------------------
 
 s = s.replace(
@@ -74,33 +74,20 @@ new = r'''define Build/Compile
 		go generate ./... ; \
 		cd dae-core ; \
 		echo "========================================" ; \
-		echo "==> locating github.com/cilium/ebpf..." ; \
-		EBPF_MOD="$$(go list -m -f '{{.Path}}@{{.Version}}' github.com/cilium/ebpf)" ; \
-		echo "==> module: $$EBPF_MOD" ; \
-		EBPF_DIR="$$(go env GOPATH)/pkg/mod/github.com/cilium/ebpf@v0.15.0" ; \
-		echo "==> directory: $$EBPF_DIR" ; \
-		echo "==> checking:" ; \
-		ls -ld "$$EBPF_DIR" || true ; \
-		ls -l "$$EBPF_DIR/btf/unmarshal.go" || true ; \
-		if [ ! -f "$$EBPF_DIR/btf/unmarshal.go" ]; then \
+		echo "==> searching cilium/ebpf..." ; \
+		find /workdir/openwrt -path '*/github.com/cilium/ebpf@*/btf/unmarshal.go' -print ; \
+		CILIUM_BTF="$$(find /workdir/openwrt -path '*/github.com/cilium/ebpf@*/btf/unmarshal.go' -print -quit)" ; \
+		echo "==> cilium/ebpf BTF file: $$CILIUM_BTF" ; \
+		if [ -z "$$CILIUM_BTF" ]; then \
 			echo "==> ERROR: cilium/ebpf btf/unmarshal.go not found" ; \
-			echo "==> GOPATH: $$(go env GOPATH)" ; \
-			echo "==> GOMOD: $$(go env GOMOD)" ; \
-			echo "==> module cache:" ; \
-			find "$$(go env GOPATH)/pkg/mod/github.com/cilium" \
-				-maxdepth 2 -type f -name unmarshal.go 2>/dev/null || true ; \
 			exit 1 ; \
 		fi ; \
 		echo "==> BEFORE PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' \
-			"$$EBPF_DIR/btf/unmarshal.go" || true ; \
-		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' \
-			"$$EBPF_DIR/btf/unmarshal.go" ; \
+		grep -n 'btfIndex.*math.MaxInt' "$$CILIUM_BTF" || true ; \
+		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' "$$CILIUM_BTF" ; \
 		echo "==> AFTER PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' \
-			"$$EBPF_DIR/btf/unmarshal.go" ; \
-		if ! grep -q 'btfIndex != \^uint32(0)' \
-			"$$EBPF_DIR/btf/unmarshal.go"; then \
+		grep -n 'btfIndex.*math.MaxInt' "$$CILIUM_BTF" ; \
+		if ! grep -q 'btfIndex != \^uint32(0)' "$$CILIUM_BTF"; then \
 			echo "==> ERROR: cilium/ebpf BTF patch NOT applied" ; \
 			exit 1 ; \
 		fi ; \
@@ -122,5 +109,5 @@ s = s[:start] + new + s[end:]
 
 p.write_text(s)
 
-print("==> daed Makefile patched successfully")
+print("==> daed 1.27.0 Makefile patched successfully")
 PY
