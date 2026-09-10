@@ -26,10 +26,6 @@ EOF
 # grpc
 #sed -i 's/^  GO_PKG_TAGS:=with_acme.*/  GO_PKG_TAGS:=with_acme,with_clash_api,with_dhcp,with_gvisor,with_quic,with_tailscale,with_utls,with_wireguard,with_grpc/g' feeds/packages/net/sing-box/Makefile
 
-# ============================================================
-# daed 1.27.0 - MIPS32 compatibility
-# ============================================================
-
 DAED_MAKEFILE="./feeds/packages/net/daed/Makefile"
 
 python3 - "$DAED_MAKEFILE" <<'PY'
@@ -39,28 +35,18 @@ import sys
 p = Path(sys.argv[1])
 s = p.read_text()
 
-# ------------------------------------------------------------
-# 1. MIPS32 禁用 trace
-# ------------------------------------------------------------
-
+# 1. MIPS 删除 trace
 s = s.replace(
     "GO_PKG_TAGS:=embedallowed,trace",
     "GO_PKG_TAGS:=embedallowed",
 )
-
-# ------------------------------------------------------------
-# 2. 删除 trace BPF 生成
-# ------------------------------------------------------------
 
 s = s.replace(
     "\t\tgo generate trace/trace.go ; \\",
     "",
 )
 
-# ------------------------------------------------------------
-# 3. 替换 Build/Compile
-# ------------------------------------------------------------
-
+# 2. 替换 Build/Compile
 start = s.index("define Build/Compile")
 end = s.index("endef", start) + len("endef")
 
@@ -74,24 +60,27 @@ new = r'''define Build/Compile
 		go generate ./... ; \
 		cd dae-core ; \
 		echo "========================================" ; \
-		echo "==> cilium/ebpf BTF file:" ; \
-		echo "/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0/btf/unmarshal.go" ; \
-		if [ ! -f "/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0/btf/unmarshal.go" ]; then \
-			echo "==> ERROR: cilium/ebpf btf/unmarshal.go not found" ; \
-			echo "==> cilium/ebpf directory:" ; \
-			ls -la "/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0" 2>/dev/null || true ; \
+		echo "==> Searching cilium/ebpf btf/unmarshal.go" ; \
+		EBPF_FILE="$$(find "$$(go env GOMODCACHE)/github.com/cilium" -type f -path '*/btf/unmarshal.go' 2>/dev/null | head -n 1)" ; \
+		if [ -z "$$EBPF_FILE" ]; then \
+			echo "==> Direct cache search failed, searching entire GOMODCACHE..." ; \
+			EBPF_FILE="$$(find "$$(go env GOMODCACHE)" -type f -path '*/cilium/ebpf*/btf/unmarshal.go' 2>/dev/null | head -n 1)" ; \
+		fi ; \
+		echo "==> Found: $$EBPF_FILE" ; \
+		if [ -z "$$EBPF_FILE" ] || [ ! -f "$$EBPF_FILE" ]; then \
+			echo "==> ERROR: cilium/ebpf btf/unmarshal.go NOT FOUND" ; \
+			echo "==> GOMODCACHE: $$(go env GOMODCACHE)" ; \
+			echo "==> cilium cache:" ; \
+			find "$$(go env GOMODCACHE)/github.com/cilium" -maxdepth 4 -print 2>/dev/null || true ; \
 			exit 1 ; \
 		fi ; \
+		echo "========================================" ; \
 		echo "==> BEFORE PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' \
-			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0/btf/unmarshal.go" || true ; \
-		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' \
-			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0/btf/unmarshal.go" ; \
+		grep -n 'btfIndex.*math.MaxInt' "$$EBPF_FILE" || true ; \
+		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' "$$EBPF_FILE" ; \
 		echo "==> AFTER PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' \
-			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0/btf/unmarshal.go" ; \
-		if ! grep -q 'btfIndex != \^uint32(0)' \
-			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0/btf/unmarshal.go"; then \
+		grep -n 'btfIndex.*math.MaxInt' "$$EBPF_FILE" || true ; \
+		if ! grep -q 'btfIndex != \^uint32(0)' "$$EBPF_FILE"; then \
 			echo "==> ERROR: cilium/ebpf BTF patch NOT applied" ; \
 			exit 1 ; \
 		fi ; \
@@ -105,13 +94,12 @@ new = r'''define Build/Compile
 		BPF_TRACE_TARGET="mips" ; \
 		go generate control/control.go ; \
 		popd ; \
-		$(call GoPackage/Build/Compile) ; \
+		$(call GoPackage/Build/Compile) \
 	)
 endef'''
 
 s = s[:start] + new + s[end:]
 
 p.write_text(s)
-
 print("==> daed 1.27.0 Makefile patched successfully")
 PY
