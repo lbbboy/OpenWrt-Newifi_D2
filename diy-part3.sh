@@ -26,6 +26,7 @@ EOF
 # grpc
 #sed -i 's/^  GO_PKG_TAGS:=with_acme.*/  GO_PKG_TAGS:=with_acme,with_clash_api,with_dhcp,with_gvisor,with_quic,with_tailscale,with_utls,with_wireguard,with_grpc/g' feeds/packages/net/sing-box/Makefile
 
+
 DAED_MAKEFILE="./feeds/packages/net/daed/Makefile"
 
 python3 - "$DAED_MAKEFILE" <<'PY'
@@ -35,7 +36,10 @@ import sys
 p = Path(sys.argv[1])
 s = p.read_text()
 
-# 1. MIPS 删除 trace
+# ============================================================
+# 1. MIPS 不编译 trace
+# ============================================================
+
 s = s.replace(
     "GO_PKG_TAGS:=embedallowed,trace",
     "GO_PKG_TAGS:=embedallowed",
@@ -46,7 +50,10 @@ s = s.replace(
     "",
 )
 
-# 2. 替换 Build/Compile
+# ============================================================
+# 2. 替换整个 Build/Compile
+# ============================================================
+
 start = s.index("define Build/Compile")
 end = s.index("endef", start) + len("endef")
 
@@ -60,21 +67,18 @@ new = r'''define Build/Compile
 		go generate ./... ; \
 		cd dae-core ; \
 		echo "========================================" ; \
-		echo "==> Searching cilium/ebpf btf/unmarshal.go" ; \
-		EBPF_FILE="$$(find "$$(go env GOMODCACHE)/github.com/cilium" -type f -path '*/btf/unmarshal.go' 2>/dev/null | head -n 1)" ; \
-		if [ -z "$$EBPF_FILE" ]; then \
-			echo "==> Direct cache search failed, searching entire GOMODCACHE..." ; \
-			EBPF_FILE="$$(find "$$(go env GOMODCACHE)" -type f -path '*/cilium/ebpf*/btf/unmarshal.go' 2>/dev/null | head -n 1)" ; \
-		fi ; \
+		echo "==> cilium/ebpf search" ; \
+		find /workdir/openwrt/dl/go-mod-cache/github.com/cilium \
+			-type f -path '*/btf/unmarshal.go' -print 2>/dev/null || true ; \
+		echo "========================================" ; \
+		EBPF_FILE="$$(find /workdir/openwrt/dl/go-mod-cache/github.com/cilium -type f -path '*/btf/unmarshal.go' -print 2>/dev/null | head -n 1)" ; \
 		echo "==> Found: $$EBPF_FILE" ; \
-		if [ -z "$$EBPF_FILE" ] || [ ! -f "$$EBPF_FILE" ]; then \
+		if [ -z "$$EBPF_FILE" ]; then \
 			echo "==> ERROR: cilium/ebpf btf/unmarshal.go NOT FOUND" ; \
-			echo "==> GOMODCACHE: $$(go env GOMODCACHE)" ; \
-			echo "==> cilium cache:" ; \
-			find "$$(go env GOMODCACHE)/github.com/cilium" -maxdepth 4 -print 2>/dev/null || true ; \
+			echo "==> Listing cilium cache:" ; \
+			find /workdir/openwrt/dl/go-mod-cache/github.com/cilium -maxdepth 5 -print 2>/dev/null || true ; \
 			exit 1 ; \
 		fi ; \
-		echo "========================================" ; \
 		echo "==> BEFORE PATCH:" ; \
 		grep -n 'btfIndex.*math.MaxInt' "$$EBPF_FILE" || true ; \
 		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' "$$EBPF_FILE" ; \
