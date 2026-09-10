@@ -75,23 +75,23 @@ new = r'''define Build/Compile
 		cd dae-core ; \
 		echo "========================================" ; \
 		echo "==> cilium/ebpf BTF file:" ; \
-		echo "/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" ; \
-		if [ ! -f "/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" ]; then \
+		echo "/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0/btf/unmarshal.go" ; \
+		if [ ! -f "/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0/btf/unmarshal.go" ]; then \
 			echo "==> ERROR: cilium/ebpf btf/unmarshal.go not found" ; \
-			echo "==> cilium/ebpf cache directory:" ; \
-			ls -la "/workdir/openwrt/dl/go-mod-cache/github.com/cilium" 2>/dev/null || true ; \
+			echo "==> cilium/ebpf directory:" ; \
+			ls -la "/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0" 2>/dev/null || true ; \
 			exit 1 ; \
 		fi ; \
 		echo "==> BEFORE PATCH:" ; \
 		grep -n 'btfIndex.*math.MaxInt' \
-			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" || true ; \
+			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0/btf/unmarshal.go" || true ; \
 		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' \
-			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" ; \
+			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0/btf/unmarshal.go" ; \
 		echo "==> AFTER PATCH:" ; \
 		grep -n 'btfIndex.*math.MaxInt' \
-			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go" ; \
+			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0/btf/unmarshal.go" ; \
 		if ! grep -q 'btfIndex != \^uint32(0)' \
-			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf@v0.15.0/btf/unmarshal.go"; then \
+			"/workdir/openwrt/dl/go-mod-cache/github.com/cilium/ebpf/ebpf@v0.15.0/btf/unmarshal.go"; then \
 			echo "==> ERROR: cilium/ebpf BTF patch NOT applied" ; \
 			exit 1 ; \
 		fi ; \
