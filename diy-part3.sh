@@ -67,6 +67,8 @@ new = r'''define Build/Compile
 		go generate ./... ; \
 		cd dae-core ; \
 		echo "========================================" ; \
+		echo "==> downloading full cilium/ebpf module source..." ; \
+		go mod download github.com/cilium/ebpf ; \
 		echo "==> resolving cilium/ebpf version..." ; \
 		EBPF_VER="$$$$(go list -m -f '{{.Version}}' github.com/cilium/ebpf)" ; \
 		echo "==> resolved version: $$$$EBPF_VER" ; \
