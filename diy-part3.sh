@@ -74,7 +74,13 @@ new = r'''define Build/Compile
 		echo "==> forcing clean re-download of cilium/ebpf@$$$${EBPF_VER} ..." ; \
 		chmod -R u+w "$$$${EBPF_STALE_DIR}" 2>/dev/null || true ; \
 		rm -rf "$$$${EBPF_STALE_DIR}" ; \
-		go mod download -x github.com/cilium/ebpf 2>&1 | tail -n 20 ; \
+		go mod download github.com/cilium/ebpf ; \
+		DL_RC=$$$$? ; \
+		echo "==> go mod download exit code: $$$${DL_RC}" ; \
+		echo "==> disk usage of GOMODCACHE partition:" ; \
+		df -h "$$$$(go env GOMODCACHE)" ; \
+		echo "==> listing of $$$${EBPF_STALE_DIR}:" ; \
+		find "$$$${EBPF_STALE_DIR}" 2>&1 | head -n 50 ; \
 		EBPF_DIR="$$$$(go env GOMODCACHE)/github.com/cilium/ebpf@$$$${EBPF_VER}" ; \
 		EBPF_FILE="$$$${EBPF_DIR}/btf/unmarshal.go" ; \
 		echo "==> target file: $$$${EBPF_FILE}" ; \
