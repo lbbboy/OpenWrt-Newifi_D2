@@ -76,6 +76,21 @@ new = r'''define Build/Compile
 		echo "==> bumping cilium/ebpf to fix 32-bit userspace overflow (see cilium/ebpf v0.17.3 release notes)" ; \
 		go get github.com/cilium/ebpf@v0.17.3 ; \
 		go mod tidy ; \
+		echo "==> patching control_plane.go for removed ebpf.ProgramOptions.LogSize field" ; \
+		echo "==> context BEFORE patch:" ; \
+		grep -n -B2 -A2 'LogSize' control/control_plane.go || echo "(no LogSize reference found)" ; \
+		sed -i '/LogSize:[[:space:]]*ebpf\.DefaultVerifierLogSize/d' control/control_plane.go ; \
+		echo "==> context AFTER patch:" ; \
+		grep -n 'LogSize' control/control_plane.go || echo "(LogSize reference removed OK)" ; \
+		echo "==> patching control_plane.go for cilium/ebpf v0.17.3 API (LogSize field removed, now automatic)" ; \
+		grep -n 'LogSize' control/control_plane.go || true ; \
+		sed -i '/LogSize:\s*ebpf\.DefaultVerifierLogSize,\?/d' control/control_plane.go ; \
+		if grep -q 'DefaultVerifierLogSize' control/control_plane.go; then \
+			echo "==> ERROR: LogSize patch did not apply, leftover reference remains" ; \
+			grep -n 'DefaultVerifierLogSize' control/control_plane.go ; \
+			exit 1 ; \
+		fi ; \
+		echo "==> LogSize patch applied successfully" ; \
 		export \
 		BPF_CLANG="$(CLANG)" \
 		BPF_STRIP_FLAG="-strip=$(LLVM_STRIP)" \
