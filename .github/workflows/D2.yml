@@ -104,6 +104,14 @@ jobs:
         mixkey: immortalwrt-master-newifi-d2
         prefix: openwrt
 
+    - name: Download package
+      id: package
+      run: |
+        cd openwrt
+        make download -j$(nproc)
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+
     - name: SSH connection to Actions
       uses: P3TERX/ssh2actions@v1.0.0
       if: ${{ github.event.inputs.ssh == 'true' }}
@@ -122,14 +130,6 @@ jobs:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       if: ${{ github.event.inputs.ngrok == 'true' }}
-
-    - name: Download package
-      id: package
-      run: |
-        cd openwrt
-        make download -j$(nproc)
-        find dl -size -1024c -exec ls -l {} \;
-        find dl -size -1024c -exec rm -f {} \;
 
     - name: Compile the firmware
       id: compile
