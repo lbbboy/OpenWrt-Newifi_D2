@@ -50,15 +50,18 @@ s = s.replace(
 
 # ------------------------------------------------------------
 # 2. 替换 Build/Compile
-#    daed 1.27.0 锁定的 cilium/ebpf 版本是 v0.15.0。
-#    该库官方 v0.17.3 发布说明中明确提到修复了
-#    "a buffer overflow when running 32-bit user space
-#    on a 64-bit kernel"，这正是 MT7621 (mipsel 32位)
-#    上出现 "type id XXXXX: index exceeds int" 崩溃的
-#    根因。这里在构建前用 `go get` 把依赖升级到该修复
-#    版本，而不是手工改源码文件（此前尝试的
-#    "unmarshal.go"/"btfIndex" 补丁经核实并不存在，
-#    已放弃该方向）。
+#    daed 1.27.0 锁定的 cilium/ebpf 版本是 v0.15.0，
+#    官方 daeuniverse/dae 目前 main 分支已经把这个依赖
+#    升级到 v0.20.0，并且配套修改了 control/kern/tproxy.c
+#    里 PARAM 的声明（去掉了 static，改成
+#    `const volatile struct dae_param PARAM = {};`），
+#    因为新版 cilium/ebpf 的 RewriteConstants 现在按
+#    libbpf 规则要求全局常量必须是非 static（可见）的，
+#    否则运行时会报 "rewrite constants: some constants
+#    are missing from .rodata: PARAM"。
+#    这里把依赖版本和这处代码都对齐到官方现在的写法。
+#    （此前尝试的 "unmarshal.go"/"btfIndex" 补丁经核实
+#    并不存在，已放弃该方向。）
 # ------------------------------------------------------------
 
 start = s.index("define Build/Compile")
@@ -73,8 +76,8 @@ new = r'''define Build/Compile
 		$(GO_PKG_BUILD_VARS) ; \
 		go generate ./... ; \
 		cd dae-core ; \
-		echo "==> bumping cilium/ebpf to fix 32-bit userspace overflow (see cilium/ebpf v0.17.3 release notes)" ; \
-		go get github.com/cilium/ebpf@v0.17.3 ; \
+		echo "==> bumping cilium/ebpf to v0.20.0 (matches upstream daeuniverse/dae main branch)" ; \
+		go get github.com/cilium/ebpf@v0.20.0 ; \
 		go mod tidy ; \
 		echo "==> patching control_plane.go for removed ebpf.ProgramOptions.LogSize field" ; \
 		echo "==> context BEFORE patch:" ; \
@@ -82,14 +85,16 @@ new = r'''define Build/Compile
 		sed -i '/LogSize:[[:space:]]*ebpf\.DefaultVerifierLogSize/d' control/control_plane.go ; \
 		echo "==> context AFTER patch:" ; \
 		grep -n 'LogSize' control/control_plane.go || echo "(LogSize reference removed OK)" ; \
-		echo "==> patching control_plane.go for cilium/ebpf v0.17.3 API (LogSize field removed, now automatic)" ; \
-		grep -n 'LogSize' control/control_plane.go || true ; \
-		sed -i '/LogSize:\s*ebpf\.DefaultVerifierLogSize,\?/d' control/control_plane.go ; \
-		if grep -q 'DefaultVerifierLogSize' control/control_plane.go; then \
-			echo "==> ERROR: LogSize patch did not apply, leftover reference remains" ; \
-			grep -n 'DefaultVerifierLogSize' control/control_plane.go ; \
-			exit 1 ; \
-		fi ; \
+		echo "==> searching for PARAM eBPF global constant declaration..." ; \
+		PARAM_FILES="$$$$(grep -rl 'PARAM' --include='*.c' . 2>/dev/null)" ; \
+		echo "==> files mentioning PARAM: $$$${PARAM_FILES}" ; \
+		for f in $$$${PARAM_FILES} ; do \
+			echo "==> $$$${f} BEFORE:" ; \
+			grep -n 'PARAM' "$$$${f}" ; \
+			sed -i -E 's/^(\s*)static(\s+.*\bPARAM\b.*=.*)/\1\2/' "$$$${f}" ; \
+			echo "==> $$$${f} AFTER:" ; \
+			grep -n 'PARAM' "$$$${f}" ; \
+		done ; \
 		echo "==> LogSize patch applied successfully" ; \
 		export \
 		BPF_CLANG="$(CLANG)" \
