@@ -79,8 +79,13 @@ new = r'''define Build/Compile
 		echo "==> go mod download exit code: $$$${DL_RC}" ; \
 		echo "==> disk usage of GOMODCACHE partition:" ; \
 		df -h "$$$$(go env GOMODCACHE)" ; \
-		echo "==> listing of $$$${EBPF_STALE_DIR}:" ; \
-		find "$$$${EBPF_STALE_DIR}" 2>&1 | head -n 50 ; \
+		echo "==> top-level listing of $$$${EBPF_STALE_DIR}:" ; \
+		find "$$$${EBPF_STALE_DIR}" -maxdepth 1 2>&1 | sort ; \
+		EBPF_ZIP="$$$$(go env GOMODCACHE)/cache/download/github.com/cilium/ebpf/@v/$$$${EBPF_VER}.zip" ; \
+		echo "==> checking raw zip: $$$${EBPF_ZIP}" ; \
+		ls -la "$$$${EBPF_ZIP}" 2>&1 ; \
+		unzip -l "$$$${EBPF_ZIP}" 2>&1 | grep -i 'btf/' | head -n 20 ; \
+		echo "==> (empty above means the downloaded zip itself has no btf/ files)" ; \
 		EBPF_DIR="$$$$(go env GOMODCACHE)/github.com/cilium/ebpf@$$$${EBPF_VER}" ; \
 		EBPF_FILE="$$$${EBPF_DIR}/btf/unmarshal.go" ; \
 		echo "==> target file: $$$${EBPF_FILE}" ; \
