@@ -50,8 +50,15 @@ s = s.replace(
 
 # ------------------------------------------------------------
 # 2. 替换 Build/Compile
-#    动态解析 cilium/ebpf 版本号，而不是写死版本，
-#    避免依赖升级后补丁路径失效导致构建中断。
+#    daed 1.27.0 锁定的 cilium/ebpf 版本是 v0.15.0。
+#    该库官方 v0.17.3 发布说明中明确提到修复了
+#    "a buffer overflow when running 32-bit user space
+#    on a 64-bit kernel"，这正是 MT7621 (mipsel 32位)
+#    上出现 "type id XXXXX: index exceeds int" 崩溃的
+#    根因。这里在构建前用 `go get` 把依赖升级到该修复
+#    版本，而不是手工改源码文件（此前尝试的
+#    "unmarshal.go"/"btfIndex" 补丁经核实并不存在，
+#    已放弃该方向）。
 # ------------------------------------------------------------
 
 start = s.index("define Build/Compile")
@@ -66,52 +73,9 @@ new = r'''define Build/Compile
 		$(GO_PKG_BUILD_VARS) ; \
 		go generate ./... ; \
 		cd dae-core ; \
-		echo "========================================" ; \
-		echo "==> resolving cilium/ebpf version..." ; \
-		EBPF_VER="$$$$(go list -m -f '{{.Version}}' github.com/cilium/ebpf)" ; \
-		echo "==> resolved version: $$$$EBPF_VER" ; \
-		EBPF_STALE_DIR="$$$$(go env GOMODCACHE)/github.com/cilium/ebpf@$$$${EBPF_VER}" ; \
-		echo "==> forcing clean re-download of cilium/ebpf@$$$${EBPF_VER} ..." ; \
-		chmod -R u+w "$$$${EBPF_STALE_DIR}" 2>/dev/null || true ; \
-		rm -rf "$$$${EBPF_STALE_DIR}" ; \
-		go mod download github.com/cilium/ebpf ; \
-		DL_RC=$$$$? ; \
-		echo "==> go mod download exit code: $$$${DL_RC}" ; \
-		echo "==> disk usage of GOMODCACHE partition:" ; \
-		df -h "$$$$(go env GOMODCACHE)" ; \
-		echo "==> top-level listing of $$$${EBPF_STALE_DIR}:" ; \
-		find "$$$${EBPF_STALE_DIR}" -maxdepth 1 2>&1 | sort ; \
-		EBPF_ZIP="$$$$(go env GOMODCACHE)/cache/download/github.com/cilium/ebpf/@v/$$$${EBPF_VER}.zip" ; \
-		echo "==> checking raw zip: $$$${EBPF_ZIP}" ; \
-		ls -la "$$$${EBPF_ZIP}" 2>&1 ; \
-		unzip -l "$$$${EBPF_ZIP}" 2>&1 | grep -i 'btf/' | head -n 20 ; \
-		echo "==> (empty above means the downloaded zip itself has no btf/ files)" ; \
-		EBPF_DIR="$$$$(go env GOMODCACHE)/github.com/cilium/ebpf@$$$${EBPF_VER}" ; \
-		EBPF_FILE="$$$${EBPF_DIR}/btf/unmarshal.go" ; \
-		echo "==> target file: $$$${EBPF_FILE}" ; \
-		if [ ! -f "$$$${EBPF_FILE}" ] ; then \
-			echo "==> WARN: not found at $$$${EBPF_FILE}, falling back to find" ; \
-			EBPF_FILE="$$$$(find "$$$$(go env GOMODCACHE)/github.com" -path '*/cilium/ebpf@*/btf/unmarshal.go' 2>/dev/null | head -n1)" ; \
-			echo "==> fallback found: $$$${EBPF_FILE}" ; \
-		fi ; \
-		test -n "$$$${EBPF_FILE}" -a -f "$$$${EBPF_FILE}" || { \
-			echo "==> ERROR: cilium/ebpf unmarshal.go not found anywhere" ; \
-			find "$$$$(go env GOMODCACHE)/github.com/cilium" -maxdepth 1 -type d 2>/dev/null ; \
-			exit 1 ; \
-		} ; \
-		EBPF_DIR="$$$$(dirname "$$$$(dirname "$$$${EBPF_FILE}")")" ; \
-		chmod -R u+w "$$$${EBPF_DIR}" ; \
-		echo "==> BEFORE PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' "$$$${EBPF_FILE}" || true ; \
-		sed -i 's/if uint64(btfIndex) > math.MaxInt {/if btfIndex != ^uint32(0) \&\& uint64(btfIndex) > math.MaxInt {/' "$$$${EBPF_FILE}" ; \
-		echo "==> AFTER PATCH:" ; \
-		grep -n 'btfIndex.*math.MaxInt' "$$$${EBPF_FILE}" ; \
-		if ! grep -q 'btfIndex != \^uint32(0)' "$$$${EBPF_FILE}"; then \
-			echo "==> ERROR: cilium/ebpf BTF patch NOT applied" ; \
-			exit 1 ; \
-		fi ; \
-		echo "==> cilium/ebpf BTF patch applied successfully" ; \
-		echo "========================================" ; \
+		echo "==> bumping cilium/ebpf to fix 32-bit userspace overflow (see cilium/ebpf v0.17.3 release notes)" ; \
+		go get github.com/cilium/ebpf@v0.17.3 ; \
+		go mod tidy ; \
 		export \
 		BPF_CLANG="$(CLANG)" \
 		BPF_STRIP_FLAG="-strip=$(LLVM_STRIP)" \
