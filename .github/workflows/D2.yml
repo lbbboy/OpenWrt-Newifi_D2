@@ -203,7 +203,7 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
-- name: Delete old workflow runs
+    - name: Delete old workflow runs
       run: |
         gh run list --repo ${{ github.repository }} --workflow "${{ github.workflow }}" --json databaseId -q '.[].databaseId' | tail -n +3 | xargs -I {} gh run delete {} --repo ${{ github.repository }}
       env:
