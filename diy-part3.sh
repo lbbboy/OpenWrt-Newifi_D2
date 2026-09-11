@@ -83,6 +83,7 @@ new = r'''define Build/Compile
 		BPF_TARGET="bpfel,bpfeb" ; \
 		go generate control/control.go ; \
 		popd ; \
+		( cd $(PKG_BUILD_DIR) && if [ -f go.work ]; then go work sync ; fi ; go mod tidy ) ; \
 		$(call GoPackage/Build/Compile) ; \
 	)
 endef'''
