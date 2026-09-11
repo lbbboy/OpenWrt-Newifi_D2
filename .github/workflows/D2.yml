@@ -99,6 +99,23 @@ jobs:
         mixkey: immortalwrt-master-newifi-d2
         prefix: openwrt
 
+    - name: Inject date into firmware name
+      run: |
+        cd openwrt
+        NOW_DATE=$(date -d "+8 hours" +%Y%m%d)
+        
+        if grep -q "CONFIG_VERSION_DIST=" .config; then
+          sed -i "s/CONFIG_VERSION_DIST=.*/CONFIG_VERSION_DIST=\"OpenWrt-$NOW_DATE\"/g" .config
+        else
+          echo "CONFIG_VERSION_DIST=\"OpenWrt-$NOW_DATE\"" >> .config
+        fi
+        
+        if grep -q "CONFIG_VERSION_NUMBER=" .config; then
+          sed -i "s/CONFIG_VERSION_NUMBER=.*/CONFIG_VERSION_NUMBER=\"R$(date -d "+8 hours" +%y.%m.%d)\"/g" .config
+        else
+          echo "CONFIG_VERSION_NUMBER=\"R$(date -d "+8 hours" +%y.%m.%d)\"" >> .config
+        fi
+
     - name: Download package
       id: package
       run: |
@@ -165,24 +182,6 @@ jobs:
       with:
         name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
-
-    - name: Upload firmware to cowtransfer
-      id: cowtransfer
-      if: env.UPLOAD_COWTRANSFER == 'true' && !cancelled()
-      run: |
-        curl -fsSL git.io/file-transfer | sh
-        ./transfer cow --block 2621440 -s -p 64 --no-progress ${FIRMWARE} 2>&1 | tee cowtransfer.log
-        echo "::warning file=cowtransfer.com::$(cat cowtransfer.log | grep https)"
-        echo "url=$(cat cowtransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_ENV
-
-    - name: Upload firmware to WeTransfer
-      id: wetransfer
-      if: env.UPLOAD_WETRANSFER == 'true' && !cancelled()
-      run: |
-        curl -fsSL git.io/file-transfer | sh
-        ./transfer wet -s -p 16 --no-progress ${FIRMWARE} 2>&1 | tee wetransfer.log
-        echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
-        echo "url=$(cat wetransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_ENV
 
     - name: Generate release tag
       id: tag
