@@ -9,8 +9,6 @@ env:
   DIY_P2_SH: diy-part3.sh
   UPLOAD_BIN_DIR: true
   UPLOAD_FIRMWARE: true
-  UPLOAD_COWTRANSFER: false
-  UPLOAD_WETRANSFER: true
   UPLOAD_RELEASE: true
   TZ: Asia/Shanghai
   TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -194,8 +192,6 @@ jobs:
         echo "内核版本: ${{ env.KERNEL_VERSION }}" >> release.txt
         echo "编译时间: $(date +'%Y年%m月%d日 %H:%M')" >> release.txt
         echo "" >> release.txt
-        [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ env.url }})" >> release.txt
-        [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ env.url }})" >> release.txt
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v1
@@ -207,14 +203,14 @@ jobs:
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
-    - name: Delete workflow runs
-      uses: GitRML/delete-workflow-runs@main
-      with:
-        retain_days: 1
-        keep_minimum_runs: 0
+- name: Delete old workflow runs
+      run: |
+        gh run list --repo ${{ github.repository }} --workflow "${{ github.workflow }}" --json databaseId -q '.[].databaseId' | tail -n +3 | xargs -I {} gh run delete {} --repo ${{ github.repository }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Remove old Releases
-      uses: dev-drprasad/delete-older-releases@v0.1.0
+      uses: dev-drprasad/delete-older-releases@v0.3.0
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
       with:
         keep_latest: 3
