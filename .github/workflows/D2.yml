@@ -90,11 +90,16 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P2_SH
 
+    - name: Generate cache key
+      id: cachekey
+      run: |
+        echo "MIXKEY=${REPO_BRANCH}-$(basename ${CONFIG_FILE%.*})" >> $GITHUB_ENV
+
     - name: Cache OpenWrt build
       uses: HiGarfield/cachewrtbuild@main
       with:
         ccache: true
-        mixkey: immortalwrt-master-newifi-d2
+        mixkey: ${{ env.MIXKEY }}
         prefix: openwrt
 
     - name: Inject date into firmware name
